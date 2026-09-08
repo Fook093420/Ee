@@ -1,0 +1,199 @@
+-- ==========================================================
+-- CHICKEN FIGHTER : FULL SCRIPT (SAFE MODE + FARM-BOUND UPGRADE)
+-- ==========================================================
+local Library = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+local CoreGui = game:GetService("CoreGui")
+
+-- สร้างหน้าจอสีดำสำหรับโหมดประหยัดแบตเตอรี่
+local blackScreenGui = Instance.new("ScreenGui")
+blackScreenGui.Name = "SafeAFKScreen"
+blackScreenGui.IgnoreGuiInset = true
+blackScreenGui.Enabled = false
+pcall(function() blackScreenGui.Parent = CoreGui end)
+
+local blackFrame = Instance.new("Frame")
+blackFrame.Size = UDim2.new(1, 0, 1, 0)
+blackFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+blackFrame.BorderSizePixel = 0
+blackFrame.Parent = blackScreenGui
+
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, 0, 0, 50)
+textLabel.Position = UDim2.new(0, 0, 0.45, 0)
+textLabel.BackgroundTransparency = 1
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.TextSize = 18
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.Text = "🌙 AFK Mode Active (แตะหน้าจอเพื่อเปิดปกติ)"
+textLabel.Parent = blackFrame
+
+blackFrame.InputBegan:Connect(function(input)
+   if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+      blackScreenGui.Enabled = false
+   end
+end)
+
+local Window = Library:CreateWindow({
+   Name = "ไก่เทพ (รวมฟังก์ชัน + ป้องกันโดนแบน)",
+   LoadingTitle = "กำลังโหลดระบบ...",
+   LoadingSubtitle = "Safe Mode & Farm Upgrade",
+   ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("ฟังก์ชันหลัก", 4483362458)
+
+-- 1. ตีหอคอยอัตโนมัติ
+Tab:CreateToggle({
+   Name = "ตีหอคอยอัตโนมัติ",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.AutoTower = Value
+      task.spawn(function()
+         while _G.AutoTower do
+            pcall(function() 
+               ReplicatedStorage.Remotes.TowerStart:InvokeServer() 
+            end)
+            task.wait(90)
+         end
+      end)
+   end
+})
+
+-- 2. เกิดให้อัตโนมัติ (Rebirth)
+Tab:CreateToggle({
+   Name = "เกิดให้อัตโนมัติ (Rebirth)",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.AutoRebirth = Value
+      task.spawn(function()
+         while _G.AutoRebirth do
+            pcall(function()
+               ReplicatedStorage.Remotes.Rebirth:InvokeServer()
+            end)
+            task.wait(30)
+         end
+      end)
+   end
+})
+
+-- 3. กดรับไข่ในศูนย์บ่มเพาะอัตโนมัติ
+Tab:CreateToggle({
+   Name = "กดรับไข่ในศูนย์บ่มเพาะ",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.AutoClaimIncubator = Value
+      task.spawn(function()
+         while _G.AutoClaimIncubator do
+            pcall(function()
+               ReplicatedStorage.Remotes.IncubatorClaim:FireServer()
+            end)
+            task.wait(15)
+         end
+      end)
+   end
+})
+
+-- 4. ระบบเดินอัปเกรดตัวป้อนเฉพาะในฟาร์ม (พร้อมดีเลย์ปลอดภัยกันเด้ง)
+Tab:CreateToggle({
+   Name = "เดินอัปเกรดตัวป้อน (Safe Mode: ดีเลย์กันแบน)",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.SmartFeederUpgrade = Value
+      task.spawn(function()
+         while _G.SmartFeederUpgrade do
+            pcall(function()
+               local character = LocalPlayer.Character
+               local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+               local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+               if humanoid and rootPart then
+                  local basePos = rootPart.Position
+
+                  for _, obj in ipairs(workspace:GetDescendants()) do
+                     if not _G.SmartFeederUpgrade then break end
+                     
+                     if obj:IsA("ProximityPrompt") then
+                        if obj.Parent and obj.Parent:IsA("BasePart") then
+                           local targetPart = obj.Parent
+                           local distance = (targetPart.Position - basePos).Magnitude
+                           
+                           -- จำกัดรัศมีเฉพาะในฟาร์มตัวเอง (ไม่เกิน 25 เมตร)
+                           if distance <= 25 then
+                              humanoid:MoveTo(targetPart.Position)
+                              
+                              -- รอจนกว่าตัวละครจะเดินถึงจุด
+                              local startTime = tick()
+                              repeat
+                                 task.wait(0.2)
+                                 if not _G.SmartFeederUpgrade then break end
+                                 if tick() - startTime > 3 then break end
+                              until (rootPart.Position - targetPart.Position).Magnitude < 5 or not humanoid
+                              
+                              -- กดปุ่ม 1 ครั้ง เพื่อความปลอดภัย
+                              pcall(function()
+                                 fireproximityprompt(obj)
+                              end)
+                              
+                              -- ดีเลย์หน่วงเวลา 6 วินาทีก่อนไปปุ่มถัดไป (กันโดนระบบตรวจจับว่าสแปม)
+                              task.wait(6)
+                           end
+                        end
+                     end
+                  end
+               end
+            end)
+            task.wait(2)
+         end
+      end)
+   end
+})
+
+-- 5. ระบบ AFK + จอมืดประหยัดแบตเตอรี่
+Tab:CreateToggle({
+   Name = "เปิดระบบ AFK + จอมืด",
+   CurrentValue = false,
+   Callback = function(Value)
+      _G.AFKMode = Value
+      blackScreenGui.Enabled = Value
+      
+      if Value then
+         local connection
+         connection = LocalPlayer.Idled:Connect(function()
+            if _G.AFKMode then
+               VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+               task.wait(1)
+               VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
+            else
+               connection:Disconnect()
+            end
+         end)
+      end
+
+      task.spawn(function()
+         while _G.AFKMode do
+            pcall(function() setfpscap(15) end)
+            task.wait(10)
+         end
+         pcall(function() setfpscap(60) end)
+      end)
+   end
+})
+
+-- ปุ่มปิดทั้งหมด
+Tab:CreateButton({
+   Name = "หยุดการทำงานทั้งหมด",
+   Callback = function()
+      _G.AutoTower = false
+      _G.AutoRebirth = false
+      _G.AutoClaimIncubator = false
+      _G.SmartFeederUpgrade = false
+      _G.AFKMode = false
+      blackScreenGui.Enabled = false
+      pcall(function() setfpscap(60) end)
+      Library:Destroy()
+   end
+})
